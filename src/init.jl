@@ -41,14 +41,16 @@ function __init__()
         dual_du::S
     end
 
-    function DiffCache(u::AbstractArray{T}, siz, ::Type{Val{chunk_size}}) where {T, chunk_size}
+    DiffCache(u::AbstractArray{T}, siz, chunk_size) where T =
         DiffCache(u, zeros(ForwardDiff.Dual{nothing,T,chunk_size}, siz...))
+
+    dualcache(u::AbstractArray, N=ForwardDiff.pickchunksize(length(u))) = DiffCache(u, size(u), N)
+
+    function get_tmp(dc::DiffCache, u::AbstractArray{TT}, N=ForwardDiff.npartials(u[1])) where TT<:ForwardDiff.Dual
+      T,V = ForwardDiff.tagtype(u[1]), ForwardDiff.valtype(u[1])
+      reinterpret(ForwardDiff.Dual{T,V,N}, dc.dual_du)
     end
-
-    dualcache(u::AbstractArray, N=Val{ForwardDiff.pickchunksize(length(u))}) = DiffCache(u, size(u), N)
-
-    get_tmp(dc::DiffCache, u::AbstractArray{T}) where T<:ForwardDiff.Dual = reinterpret(T, dc.dual_du)
-    get_tmp(dc::DiffCache, u::AbstractArray) = dc.du
+    get_tmp(dc::DiffCache, u::AbstractArray, N=nothing) = dc.du
   end
 
   @require Measurements="eff96d63-e80a-5855-80a2-b1b0885c5ab7" begin
